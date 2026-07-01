@@ -1,0 +1,30 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml  # 记录读取进度的文件
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push  # Promtail 向 Loki 推送日志的地址
+
+scrape_configs:
+  # 重点：配置一个从 Docker 采集日志的任务
+  - job_name: docker
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock  # 通过 Docker Socket 发现容器
+        refresh_interval: 5s
+    relabel_configs:
+      - source_labels: ['__meta_docker_container_name']
+        regex: '/(.*)'
+        target_label: 'container'  # 将容器名作为标签添加到日志中，方便查询
+    pipeline_stages:
+      # 关键步骤：解析容器运行时（如 containerd）添加的 CRI 格式时间戳前缀
+      - cri: {}  
+      # 如果你的 Python 应用输出了 JSON 格式的日志，可以在这里解析
+      # - json:
+      #     expressions:
+      #       level: level
+      #       msg: msg
+      # - labels:
+      #     level:  # 将 JSON 中的 level 字段提升为 Loki 的标签

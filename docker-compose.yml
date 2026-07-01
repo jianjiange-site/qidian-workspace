@@ -1,0 +1,25 @@
+
+services:
+  # 1. Loki 服务
+  loki:
+    image: grafana/loki:latest
+    ports:
+      - "3100:3100"  # Loki API 端口
+    # 生产环境建议挂载配置文件，这里使用默认配置启动
+    command: -config.file=/etc/loki/local-config.yaml
+
+  # 2. Promtail 服务
+  promtail:
+    image: grafana/promtail:latest
+    volumes:
+      - ./promtail-config.yml:/etc/promtail/config.yml:ro  # 挂载你本地的 Promtail 配置
+      - /var/run/docker.sock:/var/run/docker.sock          # 关键：让 Promtail 能监听到 Docker 容器的日志
+    command: -config.file=/etc/promtail/config.yml
+
+  # 3. Grafana 服务
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"  # Grafana Web 端口
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin  # 设置 Grafana 默认 admin 密码

@@ -1,0 +1,14 @@
+﻿# ============================================================
+# dating-app  Python gRPC 微服务依赖
+# 安装: pip install -r requirements.txt
+# ============================================================
+
+grpcio==1.80.0
+grpcio-tools==1.71.2
+protobuf==5.29.6
+sqlalchemy>=2.0.0
+asyncpg>=0.30.0
+
+# 可选
+# grpcio-health-checking==1.80.0
+# grpcio-reflection==1.80.0
