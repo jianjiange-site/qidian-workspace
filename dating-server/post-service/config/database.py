@@ -1,12 +1,17 @@
-"""SQLAlchemy async engine and session configuration for post-service.
+﻿"""SQLAlchemy async engine and session configuration for post-service.
 
 All values flow through ``config.settings`` (env vars > Nacos > defaults),
 so sensitive credentials never touch the repo.
 """
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+import logging
 from typing import Optional
+
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
+
 from . import settings
+
+logger = logging.getLogger(__name__)
 
 # --------------- connection ---------------
 
@@ -39,6 +44,23 @@ async def init_db() -> None:
         class_=AsyncSession,
         expire_on_commit=False,
     )
+
+    # --------------- auto-create tables ---------------
+
+    import model  # noqa: F401  — register all ORM tables on Base.metadata
+
+    async with _engine.begin() as conn:
+        try:
+            await conn.run_sync(Base.metadata.create_all)
+            logger.info("All tables created / verified successfully.")
+        except Exception:
+            logger.warning(
+                "Failed to create tables — the database might not exist yet "
+                "or the user lacks DDL privileges. The service will continue "
+                "without schema auto-creation.",
+                exc_info=True,
+            )
+
 # --------------- declarative base ---------------
 
 class Base(DeclarativeBase):

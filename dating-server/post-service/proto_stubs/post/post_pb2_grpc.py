@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-import post_pb2 as post_dot_post__pb2
+from proto_stubs.post import post_pb2 as post_dot_post__pb2
 
 GRPC_GENERATED_VERSION = '1.71.2'
 GRPC_VERSION = grpc.__version__
