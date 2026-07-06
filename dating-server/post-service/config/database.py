@@ -1,4 +1,4 @@
-﻿"""SQLAlchemy async engine and session configuration for post-service.
+"""SQLAlchemy async engine and session configuration for post-service.
 
 All values flow through ``config.settings`` (env vars > Nacos > defaults),
 so sensitive credentials never touch the repo.
@@ -80,3 +80,32 @@ async def get_db() -> AsyncSession:
         except Exception:
             await session.rollback()
             raise
+
+
+class _SessionContext:
+    """显式事务上下文，供 service 层手动控制 commit/rollback。"""
+
+    def __init__(self):
+        self.session: AsyncSession | None = None
+
+    async def __aenter__(self) -> AsyncSession:
+        if _session_factory is None:
+            raise RuntimeError("Database not initialized — call init_db() first")
+        self.session = _session_factory()
+        return self.session
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        if self.session is None:
+            return
+        try:
+            if exc_type is None:
+                await self.session.commit()
+            else:
+                await self.session.rollback()
+        finally:
+            await self.session.close()
+
+
+def get_session() -> _SessionContext:
+    """返回一个显式事务上下文管理器。"""
+    return _SessionContext()
